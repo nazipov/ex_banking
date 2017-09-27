@@ -7,8 +7,11 @@ defmodule ExBanking.Supervisor do
     Supervisor.start_link(__MODULE__, [], name: @name)
   end
 
-  def start_child(user_name) do
-    Supervisor.start_child(@name, [user_name])
+  def create_user(user_name) do
+    case Supervisor.start_child(@name, [user_name]) do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> {:error, :user_already_exists}
+    end
   end
 
   def init(_) do

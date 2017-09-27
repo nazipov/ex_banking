@@ -12,18 +12,17 @@ defmodule ExBanking do
   }
 
   @spec create_user(user :: String.t) :: :ok | banking_error
-  def create_user(user_name) do
-    case ExBanking.Supervisor.start_child(user_name) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _}} -> {:error, :user_already_exists}
-    end
-  end
+  defdelegate create_user(user), to: ExBanking.Supervisor
 
-  # @spec deposit(user :: String.t, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  @spec deposit(user :: String.t, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  defdelegate deposit(user, amount, currency), to: ExBanking.User
 
-  # @spec withdraw(user :: String.t, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  @spec withdraw(user :: String.t, amount :: number, currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  defdelegate withdraw(user, amount, currency), to: ExBanking.User
 
-  # @spec get_balance(user :: String.t, currency :: String.t) :: {:ok, balance :: number} | banking_error
+  @spec get_balance(user :: String.t, currency :: String.t) :: {:ok, balance :: number} | banking_error
+  defdelegate get_balance(user, currency), to: ExBanking.User
 
-  # @spec send(from_user :: String.t, to_user :: String.t, amount :: number, currency :: String.t) :: {:ok, from_user_balance :: number, to_user_balance :: number} | banking_error
+  @spec send(from_user :: String.t, to_user :: String.t, amount :: number, currency :: String.t) :: {:ok, from_user_balance :: number, to_user_balance :: number} | banking_error
+  defdelegate send(from_user, to_user, amount, currency), to: ExBanking.User
 end
