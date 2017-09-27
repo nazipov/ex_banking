@@ -4,8 +4,9 @@ defmodule ExBanking.User do
   import ExBanking.MoneyMath
 
   @registry ExBanking.Registry
-  @wrong_arguments_error {:error, :wrong_arguments}
   @default_amount 0.0
+
+  @wrong_arguments_error {:error, :wrong_arguments}
 
   def start_link(user) do
     GenServer.start_link(__MODULE__, nil, name: via_registry(user))
@@ -35,15 +36,23 @@ defmodule ExBanking.User do
   do
     case safe_call(from_user, {:send, to_user, amount, currency}) do
       {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}
+      {:error, :too_many_requests_to_user} -> {:error, :too_many_requests_to_sender}
       response -> response
     end
   end
-  def send(from_user, to_user, amount, currency), do: @wrong_arguments_error
+  def send(_from_user, _to_user, _amount, _currency), do: @wrong_arguments_error
 
-  defp safe_call(user, request) do
+  defp safe_call(user, request) when is_binary(user) do
     case Registry.lookup(@registry, user) do
-      [{pid, _}] -> GenServer.call(pid, request)
+      [{pid, _}] -> safe_call(pid, request)
       [] -> {:error, :user_does_not_exist}
+    end
+  end
+  defp safe_call(pid, request) when is_pid(pid) do
+    if ExBanking.Queue.user_queue_len(pid) < Application.get_env(:ex_banking, :requests_limit) do
+      GenServer.call(pid, request)
+    else
+      {:error, :too_many_requests_to_user}
     end
   end
 
@@ -82,6 +91,8 @@ defmodule ExBanking.User do
           {:reply, {:ok, new_balance, to_user_balance}, new_state}
         {:error, :user_does_not_exist} ->
           {:reply, {:error, :receiver_does_not_exist}, state}
+        {:error, :too_many_requests_to_user} ->
+          {:reply, {:error, :too_many_requests_to_receiver}, state}
       end
     end)
   end

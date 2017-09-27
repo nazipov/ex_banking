@@ -21,6 +21,6 @@ defmodule ExBanking.Mixfile do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    []
+    [{:mock, "~> 0.3.1", only: :test}]
   end
 end
