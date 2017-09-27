@@ -1,6 +1,6 @@
 # ExBanking
 
-**TODO: Add description**
+[![Build Status](https://travis-ci.org/nazipov/ex_banking.svg?branch=master)](https://travis-ci.org/nazipov/ex_banking)
 
 ## Installation
 
