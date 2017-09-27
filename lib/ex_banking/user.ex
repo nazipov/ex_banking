@@ -24,7 +24,10 @@ defmodule ExBanking.User do
   end
 
   def send(from_user, to_user, amount, currency) do
-    safe_call(from_user, {:send, to_user, amount, currency})
+    case safe_call(from_user, {:send, to_user, amount, currency}) do
+      {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}
+      response -> response
+    end
   end
 
   defp safe_call(user, request) do
@@ -68,7 +71,7 @@ defmodule ExBanking.User do
         {:ok, to_user_balance} ->
           {:reply, {:ok, new_balance, to_user_balance}, new_state}
         {:error, :user_does_not_exist} ->
-          {:error, :receiver_does_not_exist}
+          {:reply, {:error, :receiver_does_not_exist}, state}
       end
     end)
   end

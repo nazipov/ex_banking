@@ -8,6 +8,9 @@ defmodule ExBanking.MoneyMath do
 
     iex> ExBanking.MoneyMath.add(100.99, 10.029)
     111.01
+
+    iex> ExBanking.MoneyMath.add(100.99, 10)
+    110.99
   """
   def add(balance, amount) do
     (to_integer(balance) + to_integer(amount)) |> to_float
@@ -25,13 +28,19 @@ defmodule ExBanking.MoneyMath do
 
     iex> ExBanking.MoneyMath.sub(100.00, 100.00)
     0.0
+
+    iex> ExBanking.MoneyMath.sub(100.99, 10)
+    90.99
   """
   def sub(balance, amount) do
     (to_integer(balance) - to_integer(amount)) |> to_float
   end
 
-  defp to_integer(v) do
-    round(v * 100 |> Float.floor)
+  defp to_integer(float) do
+    case float * 100 do
+      v when is_float(v) -> v |> Float.floor |> round
+      v -> v
+    end
   end
 
   defp to_float(v) do
