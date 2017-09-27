@@ -22,6 +22,10 @@ defmodule ExBankingTest do
     test "returns :user_already_exists error if user exists" do
       assert {:error, :user_already_exists} == ExBanking.create_user(@user_name)
     end
+
+    test "returns :wrong_arguments error when user name is not string" do
+      assert {:error, :wrong_arguments} == ExBanking.create_user(@user_name |> String.to_atom)
+    end
   end
 
   describe "ExBanking.deposit/3" do
@@ -33,6 +37,17 @@ defmodule ExBankingTest do
 
     test "returns :user_does_not_exist error when user does not exist" do
       assert {:error, :user_does_not_exist} == ExBanking.deposit(@user_name, 100, @currency)
+    end
+
+    test "returns :wrong_arguments error when user/amount/currency has invalid type" do
+      assert {:error, :wrong_arguments} == ExBanking.deposit(@user_name |> String.to_atom, 100, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.deposit(@user_name, "100", @currency)
+      assert {:error, :wrong_arguments} == ExBanking.deposit(@user_name, "100", @currency |> String.to_atom)
+    end
+
+    test "returns :wrong_arguments error when amount is equal or less than zero" do
+      assert {:error, :wrong_arguments} == ExBanking.deposit(@user_name, 0, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.deposit(@user_name, -0.01, @currency)
     end
   end
 
@@ -51,6 +66,17 @@ defmodule ExBankingTest do
     test "returns :user_does_not_exist error when user does not exist" do
       assert {:error, :user_does_not_exist} == ExBanking.withdraw(@user_name, 100, @currency)
     end
+
+    test "returns :wrong_arguments error when user/amount/currency has invalid type" do
+      assert {:error, :wrong_arguments} == ExBanking.withdraw(@user_name |> String.to_atom, 100, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.withdraw(@user_name, "100", @currency)
+      assert {:error, :wrong_arguments} == ExBanking.withdraw(@user_name, "100", @currency |> String.to_atom)
+    end
+
+    test "returns :wrong_arguments error when amount is equal or less than zero" do
+      assert {:error, :wrong_arguments} == ExBanking.withdraw(@user_name, 0, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.withdraw(@user_name, -0.01, @currency)
+    end
   end
 
   describe "ExBanking.get_balance/2" do
@@ -61,6 +87,11 @@ defmodule ExBankingTest do
 
     test "returns :user_does_not_exist when user does not exist" do
       assert {:error, :user_does_not_exist} == ExBanking.get_balance(@user_name, @currency)
+    end
+
+    test "returns :wrong_arguments error when user/currency has invalid type" do
+      assert {:error, :wrong_arguments} == ExBanking.get_balance(@user_name |> String.to_atom, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.get_balance(@user_name, @currency |> String.to_atom)
     end
   end
 
@@ -87,6 +118,22 @@ defmodule ExBankingTest do
     test "returns :receiver_does_not_exist error when receiver does not exist" do
       assert {:error, :receiver_does_not_exist} == ExBanking.send(@user_name, @user_name_2, 100.00, @currency)
       assert {:ok, 100} == ExBanking.get_balance(@user_name, @currency)
+    end
+
+    test "returns :wrong_arguments when from_user/to_user/amount/currency has invalid type" do
+      assert {:error, :wrong_arguments} ==
+        ExBanking.send(@user_name |> String.to_atom, @user_name_2, 100.00, @currency)
+      assert {:error, :wrong_arguments} ==
+        ExBanking.send(@user_name, @user_name_2 |> String.to_atom, 100.00, @currency)
+      assert {:error, :wrong_arguments} ==
+        ExBanking.send(@user_name, @user_name_2, "100.00", @currency)
+      assert {:error, :wrong_arguments} ==
+        ExBanking.send(@user_name, @user_name_2, 100.00, @currency |> String.to_atom)
+    end
+
+    test "returns :wrong_arguments when amount is equal or less than zero" do
+      assert {:error, :wrong_arguments} == ExBanking.send(@user_name, @user_name_2, 0.0, @currency)
+      assert {:error, :wrong_arguments} == ExBanking.send(@user_name, @user_name_2, -0.01, @currency)
     end
   end
 

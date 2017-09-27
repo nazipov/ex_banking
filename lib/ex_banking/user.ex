@@ -4,31 +4,41 @@ defmodule ExBanking.User do
   import ExBanking.MoneyMath
 
   @registry ExBanking.Registry
-
+  @wrong_arguments_error {:error, :wrong_arguments}
   @default_amount 0.0
 
   def start_link(user) do
     GenServer.start_link(__MODULE__, nil, name: via_registry(user))
   end
 
-  def deposit(user, amount, currency) do
+  def deposit(user, amount, currency)
+  when is_binary(user) and is_binary(currency) and is_number(amount) and amount > 0 do
     safe_call(user, {:deposit, amount, currency})
   end
+  def deposit(_user, _amount, _currency), do: @wrong_arguments_error
 
-  def withdraw(user, amount, currency) do
+  def withdraw(user, amount, currency)
+  when is_binary(user) and is_binary(currency) and is_number(amount) and amount > 0 do
     safe_call(user, {:withdraw, amount, currency})
   end
+  def withdraw(_user, _amount, _currency), do: @wrong_arguments_error
 
-  def get_balance(user, currency) do
+  def get_balance(user, currency)
+  when is_binary(user) and is_binary(currency) do
     safe_call(user, {:get_balance, currency})
   end
+  def get_balance(_user, _currency), do: @wrong_arguments_error
 
-  def send(from_user, to_user, amount, currency) do
+  def send(from_user, to_user, amount, currency)
+  when is_binary(from_user) and is_binary(to_user) and is_binary(currency) and
+       is_number(amount) and amount > 0
+  do
     case safe_call(from_user, {:send, to_user, amount, currency}) do
       {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}
       response -> response
     end
   end
+  def send(from_user, to_user, amount, currency), do: @wrong_arguments_error
 
   defp safe_call(user, request) do
     case Registry.lookup(@registry, user) do
