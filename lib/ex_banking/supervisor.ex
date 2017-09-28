@@ -7,6 +7,11 @@ defmodule ExBanking.Supervisor do
     Supervisor.start_link(__MODULE__, [], name: @name)
   end
 
+  @doc ~S"""
+    Creates new user in the system.
+    New user has zero balance of any currency
+  """
+  @spec create_user(user :: String.t) :: :ok | ExBanking.banking_error
   def create_user(user_name) when is_binary(user_name), do: create_child(user_name)
   def create_user(_), do: {:error, :wrong_arguments}
 

@@ -194,7 +194,7 @@ defmodule ExBankingTest do
     end
 
     @tag users: [{@user_name, 100, @currency}, {@user_name_2, 10, @currency}]
-    test "returns :too_many_requests_to_receiver error if from_user has too many requests",
+    test "returns :too_many_requests_to_receiver error if to_user has too many requests",
       %{pids: [from_user_pid, to_user_pid]}
     do
       with_mock(ExBanking.Lib.RequestsLimit, [

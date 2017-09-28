@@ -11,26 +11,42 @@ defmodule ExBanking do
     :too_many_requests_to_receiver
   }
 
+  @doc ~S"""
+    Creates new user in the system.
+    New user has zero balance of any currency
+  """
   @spec create_user(user :: String.t) :: :ok | banking_error
   defdelegate create_user(user), to: ExBanking.Supervisor
 
-  @spec deposit(user :: String.t,
-                amount :: number,
-                currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  @doc ~S"""
+    Increases user's balance in given currency by amount value.
+    Returns new_balance of the user in given format.
+  """
+  @spec deposit(user :: String.t, amount :: number, currency :: String.t) ::
+               {:ok, new_balance :: number} | banking_error
   defdelegate deposit(user, amount, currency), to: ExBanking.User
 
-  @spec withdraw(user :: String.t,
-                 amount :: number,
-                 currency :: String.t) :: {:ok, new_balance :: number} | banking_error
+  @doc ~S"""
+    Decreases user's balance in given currency by amount value.
+    Returns new_balance of the user in given format.
+  """
+  @spec withdraw(user :: String.t, amount :: number, currency :: String.t) ::
+                {:ok, new_balance :: number} | banking_error
   defdelegate withdraw(user, amount, currency), to: ExBanking.User
 
-  @spec get_balance(user :: String.t,
-                    currency :: String.t) :: {:ok, balance :: number} | banking_error
+  @doc ~S"""
+    Returns balance of the user in given format.
+  """
+  @spec get_balance(user :: String.t, currency :: String.t) ::
+                   {:ok, balance :: number} | banking_error
   defdelegate get_balance(user, currency), to: ExBanking.User
 
-  @spec send(from_user :: String.t,
-             to_user :: String.t,
-             amount :: number,
-             currency :: String.t) :: {:ok, from_user_balance :: number, to_user_balance :: number} | banking_error
+  @doc ~S"""
+    Decreases from_user's balance in given currency by amount value
+    Increases to_user's balance in given currency by amount value
+    Returns balance of from_user and to_user in given format
+  """
+  @spec send(from_user :: String.t, to_user :: String.t, amount :: number, currency :: String.t) ::
+            {:ok, from_user_balance :: number, to_user_balance :: number} | banking_error
   defdelegate send(from_user, to_user, amount, currency), to: ExBanking.User
 end

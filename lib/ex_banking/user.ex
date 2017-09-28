@@ -13,24 +13,48 @@ defmodule ExBanking.User do
     GenServer.start_link(__MODULE__, nil, name: via_registry(user))
   end
 
+  @doc ~S"""
+    Increases user's balance in given currency by amount value.
+    Returns new_balance of the user in given format.
+  """
+  @spec deposit(user :: String.t, amount :: number, currency :: String.t) ::
+               {:ok, new_balance :: number} | ExBanking.banking_error
   def deposit(user, amount, currency)
   when is_binary(user) and is_binary(currency) and is_number(amount) and amount > 0 do
     safe_call(user, {:deposit, amount, currency})
   end
   def deposit(_user, _amount, _currency), do: @wrong_arguments_error
 
+  @doc ~S"""
+    Decreases user's balance in given currency by amount value.
+    Returns new_balance of the user in given format.
+  """
+  @spec withdraw(user :: String.t, amount :: number, currency :: String.t) ::
+                {:ok, new_balance :: number} | ExBanking.banking_error
   def withdraw(user, amount, currency)
   when is_binary(user) and is_binary(currency) and is_number(amount) and amount > 0 do
     safe_call(user, {:withdraw, amount, currency})
   end
   def withdraw(_user, _amount, _currency), do: @wrong_arguments_error
 
+  @doc ~S"""
+    Returns balance of the user in given format.
+  """
+  @spec get_balance(user :: String.t, currency :: String.t) ::
+                   {:ok, balance :: number} | ExBanking.banking_error
   def get_balance(user, currency)
   when is_binary(user) and is_binary(currency) do
     safe_call(user, {:get_balance, currency})
   end
   def get_balance(_user, _currency), do: @wrong_arguments_error
 
+  @doc ~S"""
+    Decreases from_user's balance in given currency by amount value
+    Increases to_user's balance in given currency by amount value
+    Returns balance of from_user and to_user in given format
+  """
+  @spec send(from_user :: String.t, to_user :: String.t, amount :: number, currency :: String.t) ::
+            {:ok, from_user_balance :: number, to_user_balance :: number} | ExBanking.banking_error
   def send(from_user, to_user, amount, currency)
   when is_binary(from_user) and is_binary(to_user) and is_binary(currency) and
        is_number(amount) and amount > 0
@@ -43,6 +67,8 @@ defmodule ExBanking.User do
   end
   def send(_from_user, _to_user, _amount, _currency), do: @wrong_arguments_error
 
+  # Validates that user exists and queue limit is not reached.
+  # If success than sends request to the user.
   defp safe_call(user, request) when is_binary(user) do
     case Registry.lookup(@registry, user) do
       [{pid, _}] -> safe_call(pid, request)
@@ -97,6 +123,8 @@ defmodule ExBanking.User do
     end)
   end
 
+  # Validates that the user have enough money for withdraw.
+  # If success than call success function with new_balance and new_state.
   defp safe_withdraw({amount, currency, state}, success) do
     balance = Map.get(state, currency, @default_amount)
     new_balance = sub(balance, amount)
