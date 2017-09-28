@@ -1,7 +1,7 @@
 defmodule ExBanking.User do
   use GenServer
 
-  import ExBanking.MoneyMath
+  import ExBanking.Lib.SimpleDecimal
 
   @registry ExBanking.Registry
   @default_amount 0.0
