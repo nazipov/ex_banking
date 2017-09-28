@@ -2,6 +2,7 @@ defmodule ExBanking.User do
   use GenServer
 
   import ExBanking.Lib.SimpleDecimal
+  import ExBanking.Lib.RequestsLimit
 
   @registry ExBanking.Registry
   @default_amount 0.0
@@ -49,10 +50,9 @@ defmodule ExBanking.User do
     end
   end
   defp safe_call(pid, request) when is_pid(pid) do
-    if ExBanking.Queue.user_queue_len(pid) < Application.get_env(:ex_banking, :requests_limit) do
-      GenServer.call(pid, request)
-    else
-      {:error, :too_many_requests_to_user}
+    case limit_reached?(pid) do
+      false -> GenServer.call(pid, request)
+      true -> {:error, :too_many_requests_to_user}
     end
   end
 

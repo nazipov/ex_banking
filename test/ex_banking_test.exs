@@ -3,16 +3,16 @@ defmodule ExBankingTest do
 
   import Mock
 
-  @max_queue_len Application.get_env(:ex_banking, :requests_limit)
-
   @user_name "Rick"
   @user_name_2 "Morty"
   @currency "CURR"
 
+  # Testing like black-box
+
   setup do
     Application.stop(:ex_banking)
     Application.start(:ex_banking)
-    %{}
+    :ok
   end
 
   setup [:setup_users]
@@ -55,11 +55,11 @@ defmodule ExBankingTest do
     end
 
     @tag users: [{@user_name, 100, @currency}]
-    test "returns :too_many_requests_to_user error if user has too many requests" do
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len end]) do
+    test "returns :too_many_requests_to_user error if user has too many requests", %{pids: [pid]} do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> true end]) do
         assert {:error, :too_many_requests_to_user} == ExBanking.deposit(@user_name, 100, @currency)
       end
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len - 1 end]) do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> false end]) do
         assert {:ok, _} = ExBanking.deposit(@user_name, 100, @currency)
       end
     end
@@ -93,11 +93,11 @@ defmodule ExBankingTest do
     end
 
     @tag users: [{@user_name, 100, @currency}]
-    test "returns :too_many_requests_to_user error if user has too many requests" do
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len end]) do
+    test "returns :too_many_requests_to_user error if user has too many requests", %{pids: [pid]} do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> true end]) do
         assert {:error, :too_many_requests_to_user} == ExBanking.withdraw(@user_name, 100, @currency)
       end
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len - 1 end]) do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> false end]) do
         assert {:ok, _} = ExBanking.withdraw(@user_name, 100, @currency)
       end
     end
@@ -119,11 +119,11 @@ defmodule ExBankingTest do
     end
 
     @tag users: [{@user_name, 100, @currency}]
-    test "returns :too_many_requests_to_user error if user has too many requests" do
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len end]) do
+    test "returns :too_many_requests_to_user error if user has too many requests", %{pids: [pid]} do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> true end]) do
         assert {:error, :too_many_requests_to_user} == ExBanking.get_balance(@user_name, @currency)
       end
-      with_mock(ExBanking.Queue, [user_queue_len: fn(_) -> @max_queue_len - 1 end]) do
+      with_mock(ExBanking.Lib.RequestsLimit, [limit_reached?: fn(^pid) -> false end]) do
         assert {:ok, _} = ExBanking.get_balance(@user_name, @currency)
       end
     end
@@ -174,19 +174,19 @@ defmodule ExBankingTest do
     test "returns :too_many_requests_to_sender error if from_user has too many requests",
       %{pids: [from_user_pid, to_user_pid]}
     do
-      with_mock(ExBanking.Queue, [
-        user_queue_len: fn
-          ^from_user_pid -> @max_queue_len
-          ^to_user_pid -> @max_queue_len - 1
+      with_mock(ExBanking.Lib.RequestsLimit, [
+        limit_reached?: fn
+          ^from_user_pid -> true
+          ^to_user_pid -> false
         end
       ]) do
         assert {:error, :too_many_requests_to_sender} ==
           ExBanking.send(@user_name, @user_name_2, 10, @currency)
       end
-      with_mock(ExBanking.Queue, [
-        user_queue_len: fn
-          ^from_user_pid -> @max_queue_len - 1
-          ^to_user_pid -> @max_queue_len - 1
+      with_mock(ExBanking.Lib.RequestsLimit, [
+        limit_reached?: fn
+          ^from_user_pid -> false
+          ^to_user_pid -> false
         end
       ]) do
         assert {:ok, _, _} = ExBanking.send(@user_name, @user_name_2, 10, @currency)
@@ -197,23 +197,22 @@ defmodule ExBankingTest do
     test "returns :too_many_requests_to_receiver error if from_user has too many requests",
       %{pids: [from_user_pid, to_user_pid]}
     do
-      with_mock(ExBanking.Queue, [
-        user_queue_len: fn
-          ^to_user_pid -> @max_queue_len
-          ^from_user_pid -> @max_queue_len - 1
+      with_mock(ExBanking.Lib.RequestsLimit, [
+        limit_reached?: fn
+          ^from_user_pid -> false
+          ^to_user_pid -> true
         end
       ]) do
         assert {:error, :too_many_requests_to_receiver} ==
           ExBanking.send(@user_name, @user_name_2, 10, @currency)
       end
-      with_mock(ExBanking.Queue, [
-        user_queue_len: fn
-          ^to_user_pid -> @max_queue_len - 1
-          ^from_user_pid -> @max_queue_len - 1
+      with_mock(ExBanking.Lib.RequestsLimit, [
+        limit_reached?: fn
+          ^from_user_pid -> false
+          ^to_user_pid -> false
         end
       ]) do
-        assert {:ok, _, _} =
-          ExBanking.send(@user_name, @user_name_2, 10, @currency)
+        assert {:ok, _, _} = ExBanking.send(@user_name, @user_name_2, 10, @currency)
       end
     end
   end
