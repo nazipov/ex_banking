@@ -56,8 +56,8 @@ defmodule ExBanking.User do
   @spec send(from_user :: String.t, to_user :: String.t, amount :: number, currency :: String.t) ::
             {:ok, from_user_balance :: number, to_user_balance :: number} | ExBanking.banking_error
   def send(from_user, to_user, amount, currency)
-  when is_binary(from_user) and is_binary(to_user) and is_binary(currency) and
-       is_number(amount) and amount > 0
+  when is_binary(from_user) and is_binary(to_user) and to_user != from_user and
+       is_binary(currency) and is_number(amount) and amount > 0
   do
     case safe_call(from_user, {:send, to_user, amount, currency}) do
       {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}

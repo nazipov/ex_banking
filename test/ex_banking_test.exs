@@ -154,6 +154,10 @@ defmodule ExBankingTest do
       assert {:ok, 100} == ExBanking.get_balance(@user_name, @currency)
     end
 
+    test "returns :wrong_arguments when from_user is equal to to_user" do
+      assert {:error, :wrong_arguments} == ExBanking.send(@user_name, @user_name, 10.00, @currency)
+    end
+
     test "returns :wrong_arguments when from_user/to_user/amount/currency has invalid type" do
       assert {:error, :wrong_arguments} ==
         ExBanking.send(@user_name |> String.to_atom, @user_name_2, 100.00, @currency)
