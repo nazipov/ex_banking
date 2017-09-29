@@ -68,16 +68,25 @@ defmodule ExBanking.User do
   def send(_from_user, _to_user, _amount, _currency), do: @wrong_arguments_error
 
   # Validates that user exists and queue limit is not reached.
-  # If success than sends request to the user.
+  # If success than sends request to the user
   defp safe_call(user, request) when is_binary(user) do
+    case user_availiable?(user) do
+      {:ok, pid} -> GenServer.call(pid, request)
+      err -> err
+    end
+  end
+
+  # Validates that user exists and queue limit is not reached.
+  # If success than returns user process pid, else error with reason
+  defp user_availiable?(user) when is_binary(user) do
     case Registry.lookup(@registry, user) do
-      [{pid, _}] -> safe_call(pid, request)
+      [{pid, _}] -> user_availiable?(pid)
       [] -> {:error, :user_does_not_exist}
     end
   end
-  defp safe_call(pid, request) when is_pid(pid) do
-    case limit_reached?(pid) do
-      false -> GenServer.call(pid, request)
+  defp user_availiable?(user) when is_pid(user) do
+    case limit_reached?(user) do
+      false -> {:ok, user}
       true -> {:error, :too_many_requests_to_user}
     end
   end
@@ -111,16 +120,18 @@ defmodule ExBanking.User do
   end
 
   def handle_call({:send, to_user, amount, currency}, _from, state) do
-    safe_withdraw({amount, currency, state}, fn new_balance, new_state ->
-      case deposit(to_user, amount, currency) do
-        {:ok, to_user_balance} ->
+    case user_availiable?(to_user) do
+      {:ok, to_user_pid} ->
+        safe_withdraw({amount, currency, state}, fn new_balance, new_state ->
+          {:ok, to_user_balance} = GenServer.call(to_user_pid, {:deposit, amount, currency})
+
           {:reply, {:ok, new_balance, to_user_balance}, new_state}
-        {:error, :user_does_not_exist} ->
-          {:reply, {:error, :receiver_does_not_exist}, state}
-        {:error, :too_many_requests_to_user} ->
-          {:reply, {:error, :too_many_requests_to_receiver}, state}
-      end
-    end)
+        end)
+      {:error, :user_does_not_exist} ->
+        {:reply, {:error, :receiver_does_not_exist}, state}
+      {:error, :too_many_requests_to_user} ->
+        {:reply, {:error, :too_many_requests_to_receiver}, state}
+    end
   end
 
   # Validates that the user have enough money for withdraw.

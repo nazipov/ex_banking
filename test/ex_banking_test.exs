@@ -154,6 +154,12 @@ defmodule ExBankingTest do
       assert {:ok, 100} == ExBanking.get_balance(@user_name, @currency)
     end
 
+    @tag users: [{@user_name, 100, @currency}]
+    test "returns :receiver_does_not_exist error when receiver does not exist and sender have not enough money" do
+      assert {:error, :receiver_does_not_exist} == ExBanking.send(@user_name, @user_name_2, 110.00, @currency)
+      assert {:ok, 100} == ExBanking.get_balance(@user_name, @currency)
+    end
+
     test "returns :wrong_arguments when from_user is equal to to_user" do
       assert {:error, :wrong_arguments} == ExBanking.send(@user_name, @user_name, 10.00, @currency)
     end
