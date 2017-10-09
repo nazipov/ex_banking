@@ -59,25 +59,23 @@ defmodule ExBanking.User do
   when is_binary(from_user) and is_binary(to_user) and to_user != from_user and
        is_binary(currency) and is_number(amount) and amount > 0
   do
-    Task.async(fn ->
-      case user_availiable?(from_user) do
-        {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}
-        {:error, :too_many_requests_to_user} -> {:error, :too_many_requests_to_sender}
-        {:ok, from_user_pid} ->
-          case user_availiable?(to_user) do
-            {:error, :user_does_not_exist} -> {:error, :receiver_does_not_exist}
-            {:error, :too_many_requests_to_user} -> {:error, :too_many_requests_to_receiver}
-            {:ok, to_user_pid} ->
-              case GenServer.call(from_user_pid, {:withdraw, amount, currency}) do
-                {:ok, from_user_new_balance} ->
-                  {:ok, to_user_new_balance} = GenServer.call(to_user_pid, {:deposit, amount, currency})
+    case user_availiable?(from_user) do
+      {:error, :user_does_not_exist} -> {:error, :sender_does_not_exist}
+      {:error, :too_many_requests_to_user} -> {:error, :too_many_requests_to_sender}
+      {:ok, from_user_pid} ->
+        case user_availiable?(to_user) do
+          {:error, :user_does_not_exist} -> {:error, :receiver_does_not_exist}
+          {:error, :too_many_requests_to_user} -> {:error, :too_many_requests_to_receiver}
+          {:ok, to_user_pid} ->
+            case GenServer.call(from_user_pid, {:withdraw, amount, currency}) do
+              {:ok, from_user_new_balance} ->
+                {:ok, to_user_new_balance} = GenServer.call(to_user_pid, {:deposit, amount, currency})
 
-                  {:ok, from_user_new_balance, to_user_new_balance}
-                error -> error
-              end
-          end
-      end
-    end) |> Task.await
+                {:ok, from_user_new_balance, to_user_new_balance}
+              error -> error
+            end
+        end
+    end
   end
   def send(_from_user, _to_user, _amount, _currency), do: @wrong_arguments_error
 
@@ -145,4 +143,6 @@ defmodule ExBanking.User do
       {:reply, {:error, :not_enough_money}, state}
     end
   end
+
+
 end

@@ -12,8 +12,6 @@ defmodule ExBankingTest do
 
   @default_amount 100
 
-  @msg_queue_limit 10
-
   # Testing like black-box
 
   defmacrop parallel_calls(code) do
@@ -158,7 +156,7 @@ defmodule ExBankingTest do
       assert {:ok, 60.55} == ExBanking.get_balance(@user_name_2, @currency)
     end
 
-    @tag users: [{@user_name, 100, @currency}, {@user_name_2, 10, @currency}]
+    @tag users: [{@user_name, 0, @currency}, {@user_name_2, 0, @currency}]
     test "send deadlocks" do
       init_balance = @default_amount * @default_number_of_threads
       {:ok, _} = ExBanking.deposit(@user_name, init_balance, @currency)
