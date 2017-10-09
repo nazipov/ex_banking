@@ -7,7 +7,27 @@ defmodule ExBankingTest do
   @user_name_2 "Morty"
   @currency "CURR"
 
+  @default_number_of_threads 10_000
+  @default_rand_sleep_limit 50
+
+  @default_amount 100
+
+  @msg_queue_limit 10
+
   # Testing like black-box
+
+  defmacrop parallel_calls(code) do
+    quote do
+      1..@default_number_of_threads
+      |> Enum.map(fn(_) ->
+          Task.async(fn() ->
+            _ = @default_rand_sleep_limit |> :rand.uniform |> :timer.sleep
+            unquote(code)
+          end)
+      end)
+      |> Enum.map(&Task.await/1)
+    end
+  end
 
   setup do
     Application.stop(:ex_banking)
@@ -136,6 +156,40 @@ defmodule ExBankingTest do
 
       assert {:ok, 49.45} == ExBanking.get_balance(@user_name, @currency)
       assert {:ok, 60.55} == ExBanking.get_balance(@user_name_2, @currency)
+    end
+
+    @tag users: [{@user_name, 100, @currency}, {@user_name_2, 10, @currency}]
+    test "send deadlocks" do
+      init_balance = @default_amount * @default_number_of_threads
+      {:ok, _} = ExBanking.deposit(@user_name, init_balance, @currency)
+      {:ok, _} = ExBanking.deposit(@user_name_2, init_balance, @currency)
+
+      results = [
+                  {:sender, ExBanking.send(@user_name, @user_name_2, @default_amount, @currency)},
+                  {:receiver, ExBanking.send(@user_name_2, @user_name, @default_amount, @currency)},
+                ]
+                |> parallel_calls
+                |> List.flatten
+
+      sender_hits = Enum.count(results, fn
+        {:sender, {:ok, _, _}} -> true
+        _ -> false
+      end)
+
+      receiver_hits = Enum.count(results, fn
+        {:receiver, {:ok, _, _}} -> true
+        _ -> false
+      end)
+
+      estimated_sender_balance = init_balance - ((sender_hits - receiver_hits) * @default_amount)
+      estimated_receiver_balance = init_balance - ((receiver_hits - sender_hits) * @default_amount)
+
+      {:ok, sender_balance} = ExBanking.get_balance(@user_name, @currency)
+      {:ok, receiver_balance} = ExBanking.get_balance(@user_name_2, @currency)
+
+      assert sender_balance == estimated_sender_balance
+      assert receiver_balance == estimated_receiver_balance
+      assert (sender_balance + receiver_balance) == (init_balance * 2)
     end
 
     @tag users: [{@user_name, 100, @currency}, {@user_name_2, 10, @currency}]
